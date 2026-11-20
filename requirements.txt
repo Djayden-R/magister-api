@@ -1,0 +1,7 @@
+pathlib
+datetime
+requests
+playwright
+ics
+retrying
+dotenv
