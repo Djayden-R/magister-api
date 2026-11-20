@@ -2,6 +2,9 @@ import asyncio
 from playwright.async_api import Playwright, async_playwright, Page
 from dotenv import load_dotenv
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -9,20 +12,21 @@ load_dotenv()
 async def fill_username(page: Page, username: str):
     await page.locator("#username").fill(username)
     await page.locator("#username_submit").click()
-    print("Submitted username")
+    logger.info("Submitted username")
 
 
 async def fetch_magister_token(playwright: Playwright, base_url: str, name: str, username: str, password: str, headless: bool = True):
-    print("Starting Playwright")
+    logging.info("Starting Playwright...")
     browser = await playwright.chromium.launch(headless=headless)
     page = await browser.new_page()
 
-    print(f"Finding {name}'s token")
+    logging.info("Going to Magister Login page")
     await page.goto(f"https://{base_url}/oidc/redirect_callback.html")
 
     await fill_username(page, username)
 
     await page.wait_for_url("https://login.microsoftonline.com/**")
+    logging.debug("Redirected to Microsoft login portal")
 
     password_field = page.locator("[name='passwd']")
     await password_field.wait_for(state='visible')
