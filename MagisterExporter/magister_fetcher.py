@@ -15,6 +15,62 @@ async def fill_username(page: Page, username: str):
     logger.info("Submitted username")
 
 
+async def fill_password(page: Page, password: str, retries: int = 3):
+    """DOCSTRING HERE"""
+    # Definition of all relevant page elements
+    password_field = page.locator("[name='passwd']")
+    kmsi_checkbox = page.locator("#KmsiCheckboxField")
+    password_error = page.locator("#passwordError")
+    submit_button = page.locator("#idSIButton9")
+
+    # Wait until password is visible and page is done loading
+    # If you don't wait for networkidle, the password is often not (fully) filled in
+    await password_field.wait_for(state='visible')
+    await page.wait_for_load_state("networkidle")
+
+    # Fill in password and continue
+    await password_field.fill(password)
+    await submit_button.click()
+    logger.debug("Submitted password")
+
+    # Wait until either the error shows or the page redirects to kmsi prompt
+    await page.wait_for_load_state("load")
+
+    # Check for both a password error and the kmsi (keep me signed in) prompt
+    checks = [
+        asyncio.create_task(kmsi_checkbox.wait_for(state='visible', timeout=0)),
+        asyncio.create_task(password_error.wait_for(state='visible', timeout=0))
+    ]
+
+    finished, pending = await asyncio.wait(checks, timeout=30, return_when=asyncio.FIRST_COMPLETED)
+
+    # Stop checking the last task
+    for task in pending:
+        task.cancel()
+
+    # Check which element was found on the page
+    if finished:
+        # The task that finished first is the task that
+        finished_task = finished.pop()
+        is_on_kmsi_page = finished_task == checks[0]
+        password_error_visible = finished_task == checks[1]
+
+        # Password is correct
+        if is_on_kmsi_page:
+            logger.debug("Password is correct")
+
+        # Password is incorrect
+        elif password_error_visible:
+            error_text = await password_error.inner_text()
+            if error_text == "Please enter your password.":
+                pass
+            elif ...:
+                ...
+            raise ValueError("Password is incorrect")
+    else:
+        raise TimeoutError("Timeout after 30 seconds while checking if password is correct")
+
+
 async def fetch_magister_token(playwright: Playwright, base_url: str, name: str, username: str, password: str, headless: bool = True):
     logging.info("Starting Playwright...")
     browser = await playwright.chromium.launch(headless=headless)
@@ -28,45 +84,7 @@ async def fetch_magister_token(playwright: Playwright, base_url: str, name: str,
     await page.wait_for_url("https://login.microsoftonline.com/**")
     logging.debug("Redirected to Microsoft login portal")
 
-    password_field = page.locator("[name='passwd']")
-    await password_field.wait_for(state='visible')
-    await page.wait_for_load_state("networkidle")
-    await password_field.fill(password)
-    await page.locator("#idSIButton9").click()
-    print("Submitted password")
-
-    await page.wait_for_load_state("load")
-
-    # Check if passwordError or KmsiCheckboxField is visible
-    kmsi_checkbox = page.locator("#KmsiCheckboxField")
-    password_error = page.locator("#passwordError")
-
-    checks = [
-        asyncio.create_task(kmsi_checkbox.wait_for(state='visible', timeout=30000)),
-        asyncio.create_task(password_error.wait_for(state='visible', timeout=30000))
-    ]
-
-    finished, pending = await asyncio.wait(checks, timeout=30, return_when=asyncio.FIRST_COMPLETED)
-
-    for task in pending:
-        task.cancel()
-
-    if finished:
-        first_task = finished.pop()
-        # If the kmsi checkbox is visible, the password is correct
-        if first_task == checks[0]:
-            print("Password is correct")
-
-        # If passwordError is visible, the password is incorrect
-        elif first_task == checks[1]:
-            print(first_task)
-            if await password_error.is_visible():
-                error_text = await password_error.inner_text()
-                if error_text == "Please enter your password.":
-                    pass
-                raise ValueError("Password is incorrect")
-    else:
-        raise TimeoutError("Timeout after 30 seconds while checking if password is correct")
+    await fill_password(page, password)
 
     await page.locator("#idSIButton9").click()
     print("Continued past Microsoft prompt")
