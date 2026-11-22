@@ -77,3 +77,14 @@ def get_exams(base_url: str, user_id: str, bearer_token: str, days_to_fetch: int
             elif lesson_type == 2:
                 proefwerken.append(lesson)
     return tentamens, proefwerken, schriftelijke_overhoringen
+
+
+def get_student_info(base_url: str, bearer_token: str):
+    endpoint = "/api/account"
+
+    account_info = fetch_magister_url(base_url, endpoint, bearer_token)
+
+    if account_info:
+        student_info = account_info.get("Persoon", None)
+        return student_info
+    return None
