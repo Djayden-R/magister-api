@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "magister-exporter"
+version = "0.1.0"
+description = "Magister Exporter is an async library that makes it possible to automatically retrieve Magister student information using the username and password of the student."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "num2words",
+    "playwright",
+    "python-dotenv",
+    "requests",
+]
+
+[project.urls]
+Repository = "https://github.com/Djayden-R/magister-fetcher"
