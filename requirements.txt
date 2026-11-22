@@ -1,8 +1,5 @@
-pathlib
 datetime
 requests
 playwright
-ics
-retrying
-dotenv
+python-dotenv
 num2words
