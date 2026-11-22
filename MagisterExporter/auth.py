@@ -1,6 +1,5 @@
 import asyncio
 from playwright.async_api import async_playwright, Page
-import os
 import logging
 from num2words import num2words
 
@@ -118,15 +117,3 @@ async def fetch_magister_token(base_url: str, username: str, password: str, head
         user_id = body.get("id", None)
 
         return user_token, user_id
-
-
-async def main():
-    BASE_URL = os.environ["BASE_URL"]
-    USERNAME = os.environ["MAGISTER_USERNAME"]
-    PASSWORD = os.environ["PASSWORD"]
-
-    user_token, user_id = await fetch_magister_token(BASE_URL, USERNAME, PASSWORD, headless=False)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
