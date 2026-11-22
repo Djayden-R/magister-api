@@ -107,13 +107,17 @@ async def fetch_magister_token(base_url: str, username: str, password: str, head
         await page.locator("#idSIButton9").click()
 
         # Wait until student request is found
-        async with page.expect_response("**.magister.net/api/leerlingen/*", timeout=30000) as response_info:
+        async with page.expect_response("**.magister.net/api/account*", timeout=30000) as response_info:
             response = await response_info.value
             body = await response.json()
             headers = await response.request.all_headers()
 
         logger.debug("Student request found")
         user_token = headers.get("authorization", None)
-        user_id = body.get("id", None)
+        student_info = body.get("Persoon", None)
+        if student_info:
+            user_id = student_info.get("Id", None)
+        else:
+            user_id = None
 
         return user_token, user_id
