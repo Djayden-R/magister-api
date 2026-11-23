@@ -3,4 +3,4 @@
 __pycache__
 .vscode
 tests
-magister_api.egg-info
+*.egg-info
