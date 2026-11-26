@@ -81,6 +81,45 @@ class Lesson:
             [teacher.get("Name", None) for teacher in raw_teachers]  # pyright: ignore[reportArgumentType]
         )
 
+
+@dataclass
+class Student:
+    id: int
+    first_name: str
+    last_name: str
+    birth_date: datetime
+    official_first_names: str
+    initials: str
+
+    @classmethod
+    def from_api_input(cls, api_input: dict[str, Any]):
+        raw_id: int | None = api_input.get("Id")
+        raw_first_name: str | None = api_input.get("Roepnaam")
+        raw_last_name: str | None = api_input.get("Achternaam")
+        raw_birth_date: str | None = api_input.get("Geboortedatum")
+        raw_official_first_names: str | None = api_input.get("OfficieleVoornamen")
+        raw_initials: str | None = api_input.get("Voorletters")
+
+        if (
+            not isinstance(raw_id, int)
+            or not isinstance(raw_first_name, str)
+            or not isinstance(raw_last_name, str)
+            or not isinstance(raw_birth_date, str)
+            or not isinstance(raw_official_first_names, str)
+            or not isinstance(raw_initials, str)
+        ):
+            return None
+
+        return cls(
+            raw_id,
+            raw_first_name,
+            raw_last_name,
+            datetime.fromisoformat(raw_birth_date),
+            raw_official_first_names,
+            raw_initials
+        )
+
+
 def fetch_magister_url(base_url: str, endpoint: str, bearer_token: str) -> requests.Response:
     headers = {
         "Authorization": bearer_token,
@@ -164,9 +203,9 @@ def get_exams(base_url: str, user_id: str, bearer_token: str, days_to_fetch: int
 def get_student_info(base_url: str, bearer_token: str):
     endpoint = "/api/account"
 
-    account_info = fetch_magister_url(base_url, endpoint, bearer_token)
+    account_info = fetch_magister_data(base_url, endpoint, bearer_token)
 
     if account_info:
         student_info = account_info.get("Persoon", None)
-        return student_info
+        return Student.from_api_input(student_info) if student_info else None
     return None
