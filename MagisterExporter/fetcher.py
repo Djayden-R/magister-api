@@ -132,6 +132,10 @@ def fetch_magister_url(base_url: str, endpoint: str, bearer_token: str) -> reque
 
     return r
 
+
+def fetch_magister_data(base_url: str, endpoint: str, bearer_token: str) -> dict[str, Any] | None:
+    r = fetch_magister_url(base_url, endpoint, bearer_token)
+
     if r.ok:
         data = json.loads(r.text)
         return data
@@ -162,7 +166,7 @@ def get_calendar(base_url: str, user_id: str, bearer_token: str, days_to_fetch: 
 def get_grades(base_url: str, user_id: str, bearer_token: str):
     endpoint = f"api/personen/{user_id}/cijfers/laatste?top=9999&skip=0"
 
-    grades = fetch_magister_url(base_url, endpoint, bearer_token)
+    grades = fetch_magister_data(base_url, endpoint, bearer_token)
 
     return grades
 
@@ -181,23 +185,16 @@ def get_homework(base_url: str, user_id: str, bearer_token: str, days_to_fetch: 
 
 
 def get_exams(base_url: str, user_id: str, bearer_token: str, days_to_fetch: int):
-    calendar = get_calendar(base_url, user_id, bearer_token, days_to_fetch)
+    calendar: list[Lesson] = get_calendar(base_url, user_id, bearer_token, days_to_fetch)
 
-    tentamens = []
-    proefwerken = []
-    schriftelijke_overhoringen = []
+    exams: list[Lesson] = []
 
     if calendar:
-        lessons = calendar.get("Items", None)
-        for lesson in lessons:
-            lesson_type = lesson.get("InfoType", None)
-            if lesson_type == 4:
-                schriftelijke_overhoringen.append(lesson)
-            elif lesson_type == 3:
-                tentamens.append(lesson)
-            elif lesson_type == 2:
-                proefwerken.append(lesson)
-    return tentamens, proefwerken, schriftelijke_overhoringen
+        for lesson in calendar:
+            if lesson.info_type in [2, 3, 4]:
+                exams.append(lesson)
+
+    return exams
 
 
 def get_student_info(base_url: str, bearer_token: str):
@@ -209,3 +206,11 @@ def get_student_info(base_url: str, bearer_token: str):
         student_info = account_info.get("Persoon", None)
         return Student.from_api_input(student_info) if student_info else None
     return None
+
+
+def get_profile_picture(base_url: str, user_id: str, bearer_token: str) -> requests.Response:
+    endpoint = f"/api/leerlingen/{user_id}/foto?redirect_type=body"
+
+    r = fetch_magister_url(base_url, endpoint, bearer_token)
+
+    return r
