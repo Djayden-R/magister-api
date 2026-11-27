@@ -10,9 +10,11 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Assignment:
+    id: int
     subjects: list[str]
     content: str
     done: bool
+    lesson: Lesson
 
 
 @dataclass
@@ -20,9 +22,9 @@ class Lesson:
     id: int  # A unique identifier for the lesson
     start: datetime
     end: datetime
-    start_period: int  # Starting period of lesson, so 1 (first period), 2 (second period) etc.
-    end_period: int  # Same thing, but end period
-    description: str  # The description of the lesson provided by the teachers (may be homework, exams or other information)
+    start_period: Optional[int]  # Starting period of lesson, so 1 (first period), 2 (second period) etc.
+    end_period: Optional[int]  # Same thing, but end period
+    description: Optional[str]  # The description of the lesson provided by the teachers (may be homework, exams or other information)
     info_type: int  # Type of information provided by the teachers (1 = homework, 2 = proefwerk, 3 = tentamen, 4 = S.O.)
     homework_done: bool  # Whether homework has been marked as done in Magister
     whole_day: bool  # Whether it is a whole day event
@@ -30,6 +32,7 @@ class Lesson:
     subjects: list[str]  # List of subjects for the lesson
     classrooms: list[str]  # List of classrooms for the lesson
     teachers: list[str]  # List of teachers for the lesson
+    raw: dict[str, Any]
 
     @classmethod
     def from_api_input(cls, api_input: dict[str, Any]):
@@ -52,9 +55,6 @@ class Lesson:
             not isinstance(raw_id, int)
             or not isinstance(raw_start, str)
             or not isinstance(raw_end, str)
-            or not isinstance(raw_start_period, int)
-            or not isinstance(raw_end_period, int)
-            or not isinstance(raw_description, str)
             or not isinstance(raw_info_type, int)
             or not isinstance(raw_homework_done, bool)
             or not isinstance(raw_whole_day, bool)
@@ -76,9 +76,10 @@ class Lesson:
             raw_homework_done,
             raw_whole_day,
             raw_name,
-            [subject.get("Name", None) for subject in raw_subjects],  # pyright: ignore[reportArgumentType]
-            [classroom.get("Name", None) for classroom in raw_classrooms],  # pyright: ignore[reportArgumentType]
-            [teacher.get("Name", None) for teacher in raw_teachers]  # pyright: ignore[reportArgumentType]
+            [subject.get("Naam", None) for subject in raw_subjects],  # pyright: ignore[reportArgumentType]
+            [classroom.get("Naam", None) for classroom in raw_classrooms],  # pyright: ignore[reportArgumentType]
+            [teacher.get("Naam", None) for teacher in raw_teachers],  # pyright: ignore[reportArgumentType]
+            api_input
         )
 
 
@@ -246,7 +247,6 @@ def get_grades(base_url: str, user_id: str, bearer_token: str) -> list[Grade]:
     if raw_grades:
         logger.debug(f"Found {len(raw_grades.get('Items', []))} grades for user")
         for grade_raw in raw_grades.get("items", []):
-            logger.debug(f"Processing grade: {grade_raw}")
             grade = Grade.from_api_input(grade_raw)
             if grade:
                 grades.append(grade)
@@ -263,8 +263,8 @@ def get_homework(base_url: str, user_id: str, bearer_token: str, days_to_fetch: 
     if calendar:
         for lesson in calendar:
             # If lesson.info_type is 1, it is a homework assignment
-            if lesson.info_type == 1:
-                assignment: Assignment = Assignment(lesson.subjects, lesson.description, lesson.homework_done)
+            if lesson.info_type == 1 and lesson.description is not None:
+                assignment: Assignment = Assignment(lesson.id, lesson.subjects, lesson.description, lesson.homework_done, lesson)
                 homework.append(assignment)
     return homework
 
