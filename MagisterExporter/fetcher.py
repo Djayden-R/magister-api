@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +150,7 @@ class Grade:
         raw_counts_towards_average: bool | None = api_input.get("teltMee")
         raw_must_be_made_up: bool | None = api_input.get("moetInhalen")
         raw_has_exemption: bool | None = api_input.get("heeftVrijstelling")
-        raw_achieved_on: str | None = api_input.get("behaaldOp")
+        raw_achieved_on: Optional[str] | None = api_input.get("behaaldOp")
 
         if (
             not isinstance(raw_grade_id, int)
@@ -164,8 +164,9 @@ class Grade:
             or not isinstance(raw_counts_towards_average, bool)
             or not isinstance(raw_must_be_made_up, bool)
             or not isinstance(raw_has_exemption, bool)
-            or not isinstance(raw_achieved_on, str)
         ):
+            logger.warning(f"Grade didn't contain all required keys: {api_input.keys()}")
+            print(f"{isinstance(raw_grade_id, int)=}, {isinstance(raw_description, str)=}, {isinstance(raw_entered_on, str)=}, {isinstance(raw_subject_code, str)=}, {isinstance(raw_subject_description, str)=}, {isinstance(raw_value, str)=}, {isinstance(raw_weight_factor, float)=}, {isinstance(raw_is_sufficient, bool)=}, {isinstance(raw_counts_towards_average, bool)=}, {isinstance(raw_must_be_made_up, bool)=}, {isinstance(raw_has_exemption, bool)=}, {isinstance(raw_achieved_on, str)=}")
             return None
 
         return cls(
@@ -243,11 +244,14 @@ def get_grades(base_url: str, user_id: str, bearer_token: str) -> list[Grade]:
 
     grades: list[Grade] = []
     if raw_grades:
-        for grade_raw in raw_grades.get("Items", []):
+        logger.debug(f"Found {len(raw_grades.get('Items', []))} grades for user")
+        for grade_raw in raw_grades.get("items", []):
+            logger.debug(f"Processing grade: {grade_raw}")
             grade = Grade.from_api_input(grade_raw)
             if grade:
                 grades.append(grade)
-
+    else:
+        logger.warning("No grades found for user")
     return grades
 
 
