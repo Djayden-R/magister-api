@@ -16,7 +16,7 @@ async def fill_username(page: Page, username: str):
 
 
 async def fill_password(page: Page, password: str, retries: int = 3):
-    """DOCSTRING HERE"""
+    """ Fill in password and check if it is correct. Returns True if password is correct, False otherwise. Automatically retries three times if password is incorrect. """
     # Definition of all relevant page elements
     password_field = page.locator("[name='passwd']")
     kmsi_checkbox = page.locator("#KmsiCheckboxField")
@@ -83,7 +83,7 @@ async def fill_password(page: Page, password: str, retries: int = 3):
 
 
 async def fetch_magister_token(base_url: str, username: str, password: str, headless: bool = True):
-    """..."""
+    """ Login to Magister and fetch user token and user id. Returns a tuple of (user_token, user_id) """
     async with async_playwright() as playwright:
         # Start browser
         logging.info("Starting Playwright...")
